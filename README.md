@@ -46,6 +46,15 @@
 - `pnpm run build`
 - `pnpm test`
 
+### Build Against a Local libduckdb
+
+To build the bindings against a locally built DuckDB (for example, a build of
+DuckDB `main`) instead of the pinned release, set `DUCKDB_NODE_LIBDUCKDB_DIR`
+to a directory holding the files the platform's fetch script lists
+(`duckdb.h` and `libduckdb.so` on Linux) before the first `pnpm run build`
+in `bindings`. Nothing is downloaded. Run `pnpm run clean` first if a
+release was fetched before.
+
 ### Run API Benchmarks
 - `cd api`
 - `pnpm bench`
