@@ -3,6 +3,10 @@ import { DuckDBType } from './DuckDBType';
 import { DuckDBTypeId } from './DuckDBTypeId';
 import { typeForValue } from './typeForValue';
 import {
+  checkDecimalFitsWidth,
+  decimalFitsHugeInt,
+} from './conversion/wideDecimal';
+import {
   DuckDBArrayValue,
   DuckDBBitValue,
   DuckDBBlobValue,
@@ -28,6 +32,23 @@ import {
   DuckDBValue,
   DuckDBVariantValue,
 } from './values';
+
+/**
+ * Creates a DECIMAL value whose scaled value exceeds 128 bits.
+ *
+ * The C API has no constructor for it: a `duckdb_decimal` carries a 128-bit
+ * value. A LIST value casts its children to the child type, so the exact
+ * decimal text becomes the DECIMAL child of a one-item list, which is then
+ * extracted. The result has the DECIMAL type, and no digit is lost.
+ */
+function createWideDecimalValue(input: DuckDBDecimalValue): Value {
+  checkDecimalFitsWidth(input.value, input.width);
+  const list = duckdb.create_list_value(
+    duckdb.create_decimal_type(input.width, input.scale),
+    [duckdb.create_varchar(input.toString())]
+  );
+  return duckdb.get_list_child(list, 0);
+}
 
 export function createValue(type: DuckDBType, input: DuckDBValue): Value {
   if (input === null) {
@@ -132,6 +153,9 @@ export function createValue(type: DuckDBType, input: DuckDBValue): Value {
       throw new Error(`input is not a DuckDBBlobValue`);
     case DuckDBTypeId.DECIMAL:
       if (input instanceof DuckDBDecimalValue) {
+        if (!decimalFitsHugeInt(input.value)) {
+          return createWideDecimalValue(input);
+        }
         return duckdb.create_decimal(input);
       }
       throw new Error(`input is not a DuckDBDecimalValue`);

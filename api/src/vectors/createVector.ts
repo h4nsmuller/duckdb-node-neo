@@ -20,6 +20,8 @@ import { DuckDBBlobVector } from './DuckDBBlobVector';
 import { DuckDBBooleanVector } from './DuckDBBooleanVector';
 import { DuckDBDateVector } from './DuckDBDateVector';
 import { DuckDBDecimal128Vector } from './DuckDBDecimal128Vector';
+import { decimalWidthUnknownError } from '../conversion/wideDecimal';
+import { DuckDBDecimalBigNumVector } from './DuckDBDecimalBigNumVector';
 import { DuckDBDecimal16Vector } from './DuckDBDecimal16Vector';
 import { DuckDBDecimal32Vector } from './DuckDBDecimal32Vector';
 import { DuckDBDecimal64Vector } from './DuckDBDecimal64Vector';
@@ -112,7 +114,8 @@ function createVector(
         if (vectorType instanceof DuckDBDecimalType) {
           const { width } = vectorType;
           if (width <= 0) {
-            throw new Error(`DECIMAL width not positive: ${width}`);
+            // The C API reports 0 for a width above 255.
+            throw decimalWidthUnknownError();
           } else if (width <= 4) {
             return DuckDBDecimal16Vector.fromRawVector(
               vectorType,
@@ -138,7 +141,12 @@ function createVector(
               itemCount
             );
           } else {
-            throw new Error(`DECIMAL width too large: ${width}`);
+            // Wider than 38 digits: the unscaled value is a BIGNUM blob.
+            return DuckDBDecimalBigNumVector.fromRawVector(
+              vectorType,
+              vector,
+              itemCount
+            );
           }
         }
         throw new Error(

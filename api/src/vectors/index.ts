@@ -6,6 +6,7 @@ export * from './DuckDBBlobVector';
 export * from './DuckDBBooleanVector';
 export * from './DuckDBDateVector';
 export * from './DuckDBDecimal128Vector';
+export * from './DuckDBDecimalBigNumVector';
 export * from './DuckDBDecimal16Vector';
 export * from './DuckDBDecimal32Vector';
 export * from './DuckDBDecimal64Vector';

@@ -45,6 +45,7 @@ import {
   DuckDBVariantType,
 } from './DuckDBType';
 import { DuckDBTypeId } from './DuckDBTypeId';
+import { decimalWidthUnknownError } from './conversion/wideDecimal';
 
 export class DuckDBLogicalType {
   readonly logical_type: duckdb.LogicalType;
@@ -262,7 +263,12 @@ export class DuckDBDecimalLogicalType extends DuckDBLogicalType {
     ) as number as DuckDBTypeId;
   }
   public override asType(): DuckDBDecimalType {
-    return new DuckDBDecimalType(this.width, this.scale, this.alias);
+    const width = this.width;
+    if (width === 0) {
+      // The C API reports 0 for a width above 255.
+      throw decimalWidthUnknownError();
+    }
+    return new DuckDBDecimalType(width, this.scale, this.alias);
   }
 }
 

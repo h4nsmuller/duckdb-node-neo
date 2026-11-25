@@ -9,6 +9,7 @@ import {
 import { DuckDBTypeId } from './DuckDBTypeId';
 import { DuckDBValueConverter } from './DuckDBValueConverter';
 import { typeForValue } from './typeForValue';
+import { MAX_NARROW_DECIMAL_WIDTH } from './conversion/wideDecimal';
 import {
   DuckDBArrayValue,
   DuckDBBitValue,
@@ -274,6 +275,22 @@ export function jsonObjectFromIntervalValue(value: DuckDBValue): {
 export function doubleFromDecimalValue(value: DuckDBValue): number {
   if (value instanceof DuckDBDecimalValue) {
     return value.toDouble();
+  }
+  throw new Error(`Expected DuckDBDecimalValue`);
+}
+
+/**
+ * The JS conversion of a DECIMAL: a number for the widths that have always
+ * been numbers (up to 38 digits), and the exact decimal string for a wider
+ * one, which is never rounded to a double.
+ */
+export function numberOrStringFromDecimalValue(
+  value: DuckDBValue
+): number | string {
+  if (value instanceof DuckDBDecimalValue) {
+    return value.width > MAX_NARROW_DECIMAL_WIDTH
+      ? value.toString()
+      : value.toDouble();
   }
   throw new Error(`Expected DuckDBDecimalValue`);
 }

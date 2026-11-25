@@ -35,6 +35,10 @@ import {
   unionValue,
   variantValue,
 } from './values';
+import {
+  checkDecimalFitsWidth,
+  scaledValueFromDecimalString,
+} from './conversion/wideDecimal';
 
 const MILLIS_PER_DAY = 24 * 60 * 60 * 1000;
 
@@ -157,11 +161,18 @@ export function intervalValueFromObject(value: {
 }
 
 export function decimalValueFromNumeric(
-  value: number | bigint,
+  value: number | bigint | string,
   type: DuckDBType
 ): DuckDBDecimalValue {
   if (!(type instanceof DuckDBDecimalType)) {
     throw new Error(`Expected DuckDBDecimalType`);
+  }
+  if (typeof value === 'string') {
+    // Exact decimal text, which is how a DECIMAL wider than 38 digits reads
+    // back: it has no lossless number.
+    const scaledValue = scaledValueFromDecimalString(value, type.scale);
+    checkDecimalFitsWidth(scaledValue, type.width);
+    return new DuckDBDecimalValue(scaledValue, type.width, type.scale);
   }
   return typeof value === 'bigint'
     ? new DuckDBDecimalValue(value, type.width, type.scale)

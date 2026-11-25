@@ -11,7 +11,8 @@ import type { DuckDBVariantValue } from './values';
  * round-trip assertion in `test/js-writes.test.ts` — but not the reverse.
  * Writes are deliberately wider where a second spelling is unambiguous: the
  * 64-bit and wider integers take `number` as well as `bigint`, and DECIMAL
- * takes either a double or a raw scaled `bigint`. VARIANT is the one
+ * takes a double, a raw scaled `bigint`, or the exact decimal string that a
+ * DECIMAL wider than 38 digits reads back as. VARIANT is the one
  * exception in the other direction; see below.
  *
  * NULL is not in the table: `createToDuckDBValueConverter` maps `null` to
@@ -60,7 +61,7 @@ export interface JSInputTypeForTypeId {
   [DuckDBTypeId.UHUGEINT]: bigint | number;
   [DuckDBTypeId.VARCHAR]: string;
   [DuckDBTypeId.BLOB]: Uint8Array;
-  [DuckDBTypeId.DECIMAL]: number | bigint;
+  [DuckDBTypeId.DECIMAL]: number | bigint | string;
   [DuckDBTypeId.TIMESTAMP_S]: Date;
   [DuckDBTypeId.TIMESTAMP_MS]: Date;
   [DuckDBTypeId.TIMESTAMP_NS]: Date;

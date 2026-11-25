@@ -597,8 +597,9 @@ private:
   Napi::Value double_to_decimal(const Napi::CallbackInfo& info) {
     auto env = info.Env();
     auto input_double = info[0].As<Napi::Number>().DoubleValue();
-    auto width = info[1].As<Napi::Number>().Uint32Value();
-    auto scale = info[2].As<Napi::Number>().Uint32Value();
+    // The C API takes uint8_t: a larger number must not wrap into another width or scale.
+    auto width = GetUInt8FromNumber(env, info[1].As<Napi::Number>(), "width");
+    auto scale = GetUInt8FromNumber(env, info[2].As<Napi::Number>(), "scale");
     auto decimal = duckdb_double_to_decimal(input_double, width, scale);
     return MakeDecimalObject(env, decimal);
   }
@@ -2184,8 +2185,9 @@ private:
   // function create_decimal_type(width: number, scale: number): LogicalType
   Napi::Value create_decimal_type(const Napi::CallbackInfo& info) {
     auto env = info.Env();
-    auto width = info[0].As<Napi::Number>().Uint32Value();
-    auto scale = info[1].As<Napi::Number>().Uint32Value();
+    // The C API takes uint8_t: a larger number must not wrap into another width or scale.
+    auto width = GetUInt8FromNumber(env, info[0].As<Napi::Number>(), "width");
+    auto scale = GetUInt8FromNumber(env, info[1].As<Napi::Number>(), "scale");
     auto decimal_logical_type = duckdb_create_decimal_type(width, scale);
     return CreateExternalForLogicalType(env, decimal_logical_type);
   }

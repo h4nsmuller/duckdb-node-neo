@@ -1,5 +1,6 @@
 import duckdb from '@duckdb/node-bindings';
 import { createValue } from './createValue';
+import { decimalFitsHugeInt } from './conversion/wideDecimal';
 import { DuckDBLogicalType } from './DuckDBLogicalType';
 import { DuckDBMaterializedResult } from './DuckDBMaterializedResult';
 import { DuckDBPendingResult } from './DuckDBPendingResult';
@@ -8,6 +9,7 @@ import { DuckDBResultReader } from './DuckDBResultReader';
 import {
   BIGNUM,
   BIT,
+  DECIMAL,
   DuckDBArrayType,
   DuckDBEnumType,
   DuckDBListType,
@@ -160,6 +162,11 @@ export class DuckDBPreparedStatement {
     this.bindValue(parameterIndex, value, BIGNUM);
   }
   public bindDecimal(parameterIndex: number, value: DuckDBDecimalValue) {
+    if (!decimalFitsHugeInt(value.value)) {
+      // duckdb_bind_decimal takes a 128-bit value.
+      this.bindValue(parameterIndex, value, DECIMAL(value.width, value.scale));
+      return;
+    }
     duckdb.bind_decimal(this.prepared_statement, parameterIndex, value);
   }
   public bindFloat(parameterIndex: number, value: number) {

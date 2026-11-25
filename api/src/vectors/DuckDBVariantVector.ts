@@ -476,7 +476,10 @@ export class DuckDBVariantVector extends DuckDBVector<DuckDBVariantValue> {
         } else if (width <= 38) {
           intValue = getInt128(view, valueOffset);
         } else {
-          throw new Error(`VARIANT DECIMAL width too large: ${width}`);
+          // Wider than 38 digits: a length-prefixed BIGNUM blob.
+          intValue = getBigNumFromBytes(
+            readVarintBytes(view, valueOffset, blob)
+          );
         }
         return {
           value: new DuckDBDecimalValue(intValue, width, scale),

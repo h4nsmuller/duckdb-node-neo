@@ -45,7 +45,8 @@ export interface JSTypeForTypeId {
   [DuckDBTypeId.UHUGEINT]: bigint;
   [DuckDBTypeId.VARCHAR]: string;
   [DuckDBTypeId.BLOB]: Uint8Array;
-  [DuckDBTypeId.DECIMAL]: number;
+  /** A number, or the exact decimal string for a DECIMAL wider than 38 digits. */
+  [DuckDBTypeId.DECIMAL]: number | string;
   [DuckDBTypeId.TIMESTAMP_S]: Date;
   [DuckDBTypeId.TIMESTAMP_MS]: Date;
   [DuckDBTypeId.TIMESTAMP_NS]: Date;

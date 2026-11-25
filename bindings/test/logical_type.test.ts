@@ -63,6 +63,20 @@ suite('logical_type', () => {
     expect(duckdb.decimal_scale(decimal_type)).toBe(10);
     expect(duckdb.decimal_internal_type(decimal_type)).toBe(duckdb.Type.HUGEINT);
   });
+  test('decimal (wide, BIGNUM)', () => {
+    for (const [width, scale] of [[39, 2], [76, 10], [255, 255]]) {
+      const decimal_type = duckdb.create_decimal_type(width, scale);
+      expect(duckdb.get_type_id(decimal_type)).toBe(duckdb.Type.DECIMAL);
+      expect(duckdb.decimal_width(decimal_type)).toBe(width);
+      expect(duckdb.decimal_scale(decimal_type)).toBe(scale);
+      expect(duckdb.decimal_internal_type(decimal_type)).toBe(duckdb.Type.BIGNUM);
+    }
+  });
+  test('decimal (width and scale do not wrap)', () => {
+    // The C API takes uint8_t: 300 must not become a DECIMAL(44).
+    expect(() => duckdb.create_decimal_type(300, 2)).toThrowError(/width/);
+    expect(() => duckdb.create_decimal_type(38, 256)).toThrowError(/scale/);
+  });
   test('enum (small)', () => {
     const enum_type = duckdb.create_enum_type(['DUCK_DUCK_ENUM', 'GOOSE']);
     expect(duckdb.get_type_id(enum_type)).toBe(duckdb.Type.ENUM);

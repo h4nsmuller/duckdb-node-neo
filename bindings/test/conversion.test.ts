@@ -403,10 +403,23 @@ suite('conversion', () => {
         { width: 0, scale: 0, value: 0n }
       );
     });
-    test('out of range (width)', () => {
+    test('wide (BIGNUM storage)', () => {
+      // A width above 38 is a wide decimal. The struct carries its value while it fits 128 bits.
       expect(duckdb.double_to_decimal(1, 39, 0)).toStrictEqual(
+        { width: 39, scale: 0, value: 1n }
+      );
+      expect(duckdb.double_to_decimal(-1.5, 255, 2)).toStrictEqual(
+        { width: 255, scale: 2, value: -150n }
+      );
+    });
+    test('wide, value out of the 128-bit range', () => {
+      expect(duckdb.double_to_decimal(1e+40, 50, 0)).toStrictEqual(
         { width: 0, scale: 0, value: 0n }
       );
+    });
+    test('width and scale do not wrap', () => {
+      expect(() => duckdb.double_to_decimal(1, 256, 0)).toThrowError(/width/);
+      expect(() => duckdb.double_to_decimal(1, 4, 300)).toThrowError(/scale/);
     });
     test('out of range (scale)', () => {
       expect(duckdb.double_to_decimal(1, 4, 4)).toStrictEqual(

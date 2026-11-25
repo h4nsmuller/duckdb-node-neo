@@ -1,5 +1,10 @@
 import duckdb, { Decimal } from '@duckdb/node-bindings';
 import { stringFromDecimal } from '../conversion/stringFromDecimal';
+import {
+  decimalFitsHugeInt,
+  MAX_NARROW_DECIMAL_WIDTH,
+  scaledValueFromDouble,
+} from '../conversion/wideDecimal';
 
 export class DuckDBDecimalValue implements Decimal {
   /** Total number of decimal digits (including fractional digits) in represented number. */
@@ -26,11 +31,30 @@ export class DuckDBDecimalValue implements Decimal {
     return stringFromDecimal(this.value, this.scale);
   }
 
+  /**
+   * The nearest double. This is the only place a DECIMAL becomes a double,
+   * and only on request: results never convert a DECIMAL implicitly.
+   */
   public toDouble(): number {
+    if (
+      this.width > MAX_NARROW_DECIMAL_WIDTH ||
+      !decimalFitsHugeInt(this.value)
+    ) {
+      // duckdb_decimal_to_double takes a 128-bit value.
+      return Number(this.toString());
+    }
     return duckdb.decimal_to_double(this);
   }
 
   public static fromDouble(double: number, width: number, scale: number): DuckDBDecimalValue {
+    if (width > MAX_NARROW_DECIMAL_WIDTH) {
+      // duckdb_double_to_decimal returns a 128-bit value.
+      return new DuckDBDecimalValue(
+        scaledValueFromDouble(double, width, scale),
+        width,
+        scale
+      );
+    }
     const decimal = duckdb.double_to_decimal(double, width, scale);
     return new DuckDBDecimalValue(decimal.value, decimal.width, decimal.scale);
   }

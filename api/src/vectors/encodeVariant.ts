@@ -1,6 +1,7 @@
 import { DuckDBType, SQLNULL } from '../DuckDBType';
 import { DuckDBTypeId } from '../DuckDBTypeId';
 import { typeForValue } from '../typeForValue';
+import { checkDecimalFitsWidth } from '../conversion/wideDecimal';
 import {
   DuckDBArrayValue,
   DuckDBBitValue,
@@ -253,7 +254,9 @@ class VariantRowEncoder {
         } else if (width <= 38) {
           data.write(16, setInt128, decimal.value);
         } else {
-          throw new Error(`DECIMAL width too large: ${width}`);
+          // Wider than 38 digits: a length-prefixed BIGNUM blob.
+          checkDecimalFitsWidth(decimal.value, width);
+          data.writeBytes(getBytesFromBigNum(decimal.value));
         }
         return index;
       }

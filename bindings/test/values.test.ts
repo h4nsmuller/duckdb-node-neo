@@ -169,6 +169,35 @@ suite('values', () => {
     );
     expect(duckdb.get_decimal(decimal_value)).toStrictEqual(input);
   });
+  test('decimal_50_2 (wide, value fits 128 bits)', () => {
+    const input: Decimal = { width: 50, scale: 2, value: -(2n ** 127n) };
+    const decimal_value = duckdb.create_decimal(input);
+    expectLogicalType(
+      duckdb.get_value_type(decimal_value),
+      DECIMAL(50, 2, duckdb.Type.BIGNUM)
+    );
+    expect(duckdb.get_decimal(decimal_value)).toStrictEqual(input);
+  });
+  test('decimal_76_10 (wide, value beyond 128 bits)', () => {
+    // A duckdb_decimal carries 128 bits. A LIST value casts its children to
+    // the child type, which gives an exact DECIMAL value of any size.
+    const text = '-' + '9'.repeat(66) + '.' + '9'.repeat(10);
+    expect(() =>
+      duckdb.create_decimal({ width: 76, scale: 10, value: -(10n ** 76n - 1n) })
+    ).toThrowError(/out of hugeint range/);
+    const list_value = duckdb.create_list_value(
+      duckdb.create_decimal_type(76, 10),
+      [duckdb.create_varchar(text)]
+    );
+    const decimal_value = duckdb.get_list_child(list_value, 0);
+    expectLogicalType(
+      duckdb.get_value_type(decimal_value),
+      DECIMAL(76, 10, duckdb.Type.BIGNUM)
+    );
+    expect(duckdb.get_varchar(decimal_value)).toBe(text);
+    // The struct cannot carry the value, and DuckDB reports zero.
+    expect(duckdb.get_decimal(decimal_value).value).toBe(0n);
+  });
   test('float', () => {
     const input = 3.4028234663852886e38;
     const float_value = duckdb.create_float(input);

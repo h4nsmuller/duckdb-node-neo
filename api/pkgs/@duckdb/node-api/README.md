@@ -284,7 +284,7 @@ What each type accepts is given by `JSInputTypeForTypeId`, and by
 `JSInputTypeFor` when keyed by a `DuckDBType`. These are wider than
 what is read back where a second spelling is unambiguous: `BIGINT` and
 the wider integers accept `number` as well as `bigint`, and `DECIMAL`
-accepts either a double or a raw scaled `bigint`.
+accepts a double, a raw scaled `bigint`, or an exact decimal string.
 
 The result is a `DuckDBValue`, which is what `appendValue`,
 `bindValue`, and `setRows` all accept.
@@ -900,6 +900,12 @@ if (columnType.typeId === DuckDBTypeId.DECIMAL) {
   const decimalValue = columnValue.value; // bigint
   const decimalString = columnValue.toString();
   const decimalDouble = columnValue.toDouble();
+  // A DECIMAL wider than 38 digits (e.g. the DECIMAL(39,2) that adding two
+  // DECIMAL(38,2) values yields) is read the same way, and is exact: its
+  // value is a bigint of any size. The `JS` result forms return its exact
+  // decimal string, as it has no lossless number.
+  // DuckDB's C API describes widths of up to 255 digits; reading a wider
+  // column throws, so cast it to VARCHAR in SQL.
 }
 
 if (columnType.typeId === DuckDBTypeId.INTERVAL) {
